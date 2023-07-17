@@ -19,12 +19,12 @@ System Specs:
 
 See k6/simple.js for k6 configuration
 
-| Api      | Language | Median Req. Duration | Req/s   |
-| -------- | -------- | -------------------- | ------- |
-| epoll    | Rust     | 2.03ms               | 217,816 |
-| epoll    | Zig      | 2.03ms               | 218,617 |
-| io_uring | Rust     | 1.68ms               | 268,004 |
-| io_uring | Rust     | 1.65ms               | 272,562 |
+| Api      | Language | Median Req. Duration | p(99) Req. Duration | p(99.9) Req. Duration | Req/s   |
+| -------- | -------- | -------------------- | ------------------- | --------------------- | ------- |
+| epoll    | Rust     | 2.03ms               | 3.2ms               | 6.93ms                | 215,752 |
+| epoll    | Zig      | 2.03ms               | 3.13ms              | 6.9ms                 | 221,851 |
+| io_uring | Rust     | 1.68ms               | 2.28ms              | 6.08ms                | 272,415 |
+| io_uring | Rust     | 1.65ms               | 2.17ms              | 5.9ms                 | 279,114 |
 
 ## Known issues
 Benchmarks are run locally via k6. This isolates issues with networking components, but makes the system much more chatty. The kernel will need to spend more time shuttling packets across the loopback device. Additionally, the NIC is never touched. Until I have the hardware to separate the load generation to a new machine, this will continue to be the case.
