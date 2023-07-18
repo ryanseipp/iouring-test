@@ -1,0 +1,95 @@
+on: [push, pull_request]
+
+name: CI - Rust
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Run cargo check epoll
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path src/epoll/rust/epoll/Cargo.toml
+
+      - name: Run cargo check io_uring
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path src/iouring/rust/iouring/Cargo.toml
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Run cargo test epoll
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path src/epoll/rust/epoll/Cargo.toml
+
+      - name: Run cargo test io_uring
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path src/iouring/rust/iouring/Cargo.toml
+
+  lints:
+    name: Lints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Run cargo fmt epoll
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check --manifest-path src/epoll/rust/epoll/Cargo.toml
+
+      - name: Run cargo clippy epoll
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings --manifest-path src/epoll/rust/epoll/Cargo.toml
+
+      - name: Run cargo fmt io_uring
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check --manifest-path src/iouring/rust/iouring/Cargo.toml
+
+      - name: Run cargo clippy io_uring
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings --manifest-path src/iouring/rust/iouring/Cargo.toml

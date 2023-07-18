@@ -1,0 +1,32 @@
+on: [push, pull_request]
+
+name: CI - Rust
+
+jobs:
+  build_epoll:
+    name: Build epoll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Compile epoll
+        working-directory: src/epoll/zig
+        run: zig build
+
+  build_iouring:
+    name: Build io_uring
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install toolchain
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Compile iouring
+        working-directory: src/iouring/zig
+        run: zig build
