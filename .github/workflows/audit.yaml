@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cd $GITHUB_WORKSPACE && mv src/epoll/rust/epoll/* tmp
+      - run: cd $GITHUB_WORKSPACE && mkdir tmp && mv src/epoll/rust/epoll/* tmp
       - run: cd $GITHUB_WORKSPACE && rm -rf src
       - run: cd $GITHUB_WORKSPACE && mv tmp/* . && rmdir tmp
       - uses: actions-rs/audit-check@v1
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: cd $GITHUB_WORKSPACE && mv src/iouring/rust/iouring/* tmp
+      - run: cd $GITHUB_WORKSPACE && mkdir tmp && mv src/iouring/rust/iouring/* tmp
       - run: cd $GITHUB_WORKSPACE && rm -rf src
       - run: cd $GITHUB_WORKSPACE && mv tmp/* . && rmdir tmp
       - uses: actions-rs/audit-check@v1
