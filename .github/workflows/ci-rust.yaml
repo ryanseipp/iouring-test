@@ -1,4 +1,9 @@
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'src/epoll/rust'
+      - 'src/iouring/rust'
+  pull_request:
 
 name: CI - Rust
 

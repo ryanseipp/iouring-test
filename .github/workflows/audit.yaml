@@ -4,14 +4,26 @@ on:
     - cron: '0 0 * * *'
   push:
     paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
+      - 'src/{epoll,iouring}/rust/{epoll,iouring}/Cargo.toml'
+      - 'src/{epoll,iouring}/rust/{epoll,iouring}/Cargo.lock'
 
 jobs:
-  security_audit_rs:
+  security_audit_rs_epoll:
+    name: Audit Rust epoll
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: cd $GITHUB_WORKSPACE && mv src/epoll/rust/epoll/* .
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  security_audit_rs_iouring:
+    name: Audit Rust io_uring
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: cd $GITHUB_WORKSPACE && mv src/iouring/rust/iouring/* .
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

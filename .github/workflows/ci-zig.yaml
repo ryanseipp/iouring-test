@@ -1,4 +1,9 @@
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'src/epoll/zig'
+      - 'src/iouring/zig'
+  pull_request:
 
 name: CI - Zig
 
@@ -12,6 +17,8 @@ jobs:
 
       - name: Install toolchain
         uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.10.1
 
       - name: Compile epoll
         working-directory: src/epoll/zig
@@ -26,6 +33,8 @@ jobs:
 
       - name: Install toolchain
         uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.10.1
 
       - name: Compile iouring
         working-directory: src/iouring/zig
