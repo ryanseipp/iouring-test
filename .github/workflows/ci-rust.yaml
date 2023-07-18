@@ -1,8 +1,9 @@
 on:
   push:
     paths:
-      - 'src/epoll/rust'
-      - 'src/iouring/rust'
+      - '.github/workflows/ci-rust.yaml'
+      - 'src/epoll/rust/**'
+      - 'src/iouring/rust/**'
   pull_request:
 
 name: CI - Rust

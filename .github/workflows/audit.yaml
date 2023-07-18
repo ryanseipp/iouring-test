@@ -4,8 +4,9 @@ on:
     - cron: '0 0 * * *'
   push:
     paths:
-      - 'src/{epoll,iouring}/rust/{epoll,iouring}/Cargo.toml'
-      - 'src/{epoll,iouring}/rust/{epoll,iouring}/Cargo.lock'
+      - '.github/workflows/audit.yaml'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
 
 jobs:
   security_audit_rs_epoll:

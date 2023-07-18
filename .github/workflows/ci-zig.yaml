@@ -1,8 +1,9 @@
 on:
   push:
     paths:
-      - 'src/epoll/zig'
-      - 'src/iouring/zig'
+      - '.github/workflows/ci-zig.yaml'
+      - 'src/epoll/zig/**'
+      - 'src/iouring/zig/**'
   pull_request:
 
 name: CI - Zig
