@@ -1,10 +1,4 @@
-on:
-  push:
-    paths:
-      - '.github/workflows/ci-rust.yaml'
-      - 'src/epoll/rust/**'
-      - 'src/iouring/rust/**'
-  pull_request:
+on: [push, pull_request]
 
 name: CI - Rust
 
