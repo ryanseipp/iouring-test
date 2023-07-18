@@ -1,6 +1,6 @@
 on: [push, pull_request]
 
-name: CI - Rust
+name: CI - Zig
 
 jobs:
   build_epoll:
