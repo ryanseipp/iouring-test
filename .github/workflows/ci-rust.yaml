@@ -74,22 +74,22 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --manifest-path src/epoll/rust/epoll/Cargo.toml
+          args: --all --manifest-path src/epoll/rust/epoll/Cargo.toml -- --check
 
       - name: Run cargo clippy epoll
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings --manifest-path src/epoll/rust/epoll/Cargo.toml
+          args: --manifest-path src/epoll/rust/epoll/Cargo.toml -- -D warnings
 
       - name: Run cargo fmt io_uring
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --manifest-path src/iouring/rust/iouring/Cargo.toml
+          args: --all --manifest-path src/iouring/rust/iouring/Cargo.toml -- --check
 
       - name: Run cargo clippy io_uring
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings --manifest-path src/iouring/rust/iouring/Cargo.toml
+          args: --manifest-path src/iouring/rust/iouring/Cargo.toml -- -D warnings
