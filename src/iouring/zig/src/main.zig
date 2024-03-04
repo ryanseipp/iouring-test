@@ -25,9 +25,9 @@ const max_connections = 2048;
 const max_buffer = 1024;
 var buffers: [max_connections][max_buffer]u8 = undefined;
 
-fn accept(ring: *IO_Uring, fd: os.fd_t, addr: *os.sockaddr, addrlen: *os.socklen_t) !void {
+fn accept(ring: *IO_Uring, fd: os.fd_t) !void {
     var user_data = get_user_data(fd, .Accept);
-    _ = try ring.accept(user_data, fd, addr, addrlen, 0);
+    _ = try ring.accept(user_data, fd, null, null, 0);
 }
 
 fn recv(ring: *IO_Uring, fd: os.fd_t) !void {
@@ -73,14 +73,12 @@ pub fn main() !void {
     defer ring.deinit();
 
     var cqes: [kernel_backlog]io_uring_cqe = undefined;
-    var accept_addr: os.sockaddr = undefined;
-    var accept_addrlen: os.socklen_t = @sizeOf(@TypeOf(accept_addr));
 
     for (buffers, 0..) |_, index| {
         buffers[index] = [_]u8{0} ** max_buffer;
     }
 
-    try accept(&ring, server, &accept_addr, &accept_addrlen);
+    try accept(&ring, server);
 
     while (true) {
         const count = try ring.copy_cqes(cqes[0..], 0);
@@ -111,7 +109,7 @@ pub fn main() !void {
 
             switch (event.op) {
                 .Accept => {
-                    try accept(&ring, server, &accept_addr, &accept_addrlen);
+                    try accept(&ring, server);
                     try recv(&ring, cqe.res);
                 },
                 .Recv => {

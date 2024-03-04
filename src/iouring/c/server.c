@@ -90,8 +90,7 @@ static inline void prepare_accept(io_uring *ring, int32_t sockfd) {
     // return true;
 }
 
-static inline void prepare_recv(io_uring *ring, int32_t connfd,
-                                uint8_t buf[MAX_BUFFER]) {
+static inline void prepare_recv(io_uring *ring, int32_t connfd, uint8_t *buf) {
     io_uring_sqe *sqe = io_uring_get_sqe(ring);
     // if (sqe == nullptr) {
     //     return false;
@@ -151,14 +150,13 @@ int main(int argc, char **argv) {
         goto defer_sock;
     }
 
-    uint8_t buffers[MAX_CONNECTIONS][MAX_BUFFER] = {0};
-    // uint8_t *buffers = malloc(sizeof(uint8_t) * MAX_CONNECTIONS *
-    // MAX_BUFFER); if (buffers == NULL) {
-    //     err = -1;
-    //     fprintf(stderr, "Couldn't allocate buffers for incoming
-    //     connections"); goto defer_ring;
-    // }
-    // memset(buffers, 0, sizeof(uint8_t[MAX_CONNECTIONS][MAX_BUFFER]));
+    uint8_t *buffers = malloc(sizeof(uint8_t) * MAX_CONNECTIONS * MAX_BUFFER);
+    if (buffers == NULL) {
+        err = -1;
+        fprintf(stderr, "Couldn't allocate buffers for incoming connections");
+        goto defer;
+    }
+    memset(buffers, 0, sizeof(uint8_t[MAX_CONNECTIONS][MAX_BUFFER]));
 
     prepare_accept(&ring, sockfd);
     uint32_t buf_idx = 0;
@@ -189,7 +187,7 @@ int main(int argc, char **argv) {
                     if ((cqe->flags & IORING_CQE_F_MORE) == 0) {
                         prepare_accept(&ring, sockfd);
                     }
-                    prepare_recv(&ring, cqe->res, buffers[buf_idx]);
+                    prepare_recv(&ring, cqe->res, &buffers[buf_idx]);
                     buf_idx = (buf_idx + 1) % MAX_CONNECTIONS;
                     break;
                 case OP_RECV:
@@ -201,7 +199,7 @@ int main(int argc, char **argv) {
                     }
                     break;
                 case OP_SEND:
-                    prepare_recv(&ring, event.data.fd, buffers[buf_idx]);
+                    prepare_recv(&ring, event.data.fd, &buffers[buf_idx]);
                     buf_idx = (buf_idx + 1) % MAX_CONNECTIONS;
                     break;
                 case OP_CLOSE:

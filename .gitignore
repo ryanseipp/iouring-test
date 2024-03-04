@@ -2,3 +2,4 @@
 **/zig-out/
 **/zig-cache/
 src/iouring/c/server
+src/iouring/c/.cache
