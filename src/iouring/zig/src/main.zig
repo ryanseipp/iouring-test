@@ -47,12 +47,12 @@ fn close(ring: *IO_Uring, fd: os.fd_t) !void {
 }
 
 fn get_buffer(fd: os.fd_t) []u8 {
-    return buffers[@mod(@intCast(usize, fd), max_connections)][0..];
+    return buffers[@mod(@as(usize, @intCast(fd)), max_connections)][0..];
 }
 
 fn get_user_data(fd: os.fd_t, op: Op) u64 {
     var event: Event = .{ .fd = fd, .op = op };
-    var user_data = @bitCast(u64, event);
+    var user_data = @as(u64, @bitCast(event));
     return user_data;
 }
 
@@ -76,7 +76,7 @@ pub fn main() !void {
     var accept_addr: os.sockaddr = undefined;
     var accept_addrlen: os.socklen_t = @sizeOf(@TypeOf(accept_addr));
 
-    for (buffers) |_, index| {
+    for (buffers, 0..) |_, index| {
         buffers[index] = [_]u8{0} ** max_buffer;
     }
 
@@ -88,7 +88,7 @@ pub fn main() !void {
         var i: usize = 0;
         while (i < count) : (i += 1) {
             const cqe = cqes[i];
-            const event = @bitCast(Event, cqe.user_data);
+            const event = @as(Event, @bitCast(cqe.user_data));
 
             if (cqe.res < 0) {
                 var abortServer = false;

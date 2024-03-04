@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-io-uring = "0.6.0"
-libc = "0.2.147"
-page_size = "0.5.0"
-slab = "0.4.8"
+io-uring = "0.6.3"
+libc = "0.2.153"
+page_size = "0.6.0"
+slab = "0.4.9"
+
+[profile.release]
+debug = true

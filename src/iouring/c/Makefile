@@ -1,4 +1,5 @@
-CFLAGS ?= -g -O2 -pedantic -Wall
+CC = clang
+CFLAGS ?= -g -O3 -flto --std=c17 -pedantic -Wall
 LDFLAGS ?=
 override LDFLAGS += -luring
 
