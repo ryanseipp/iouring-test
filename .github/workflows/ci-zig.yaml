@@ -13,7 +13,7 @@ jobs:
       - name: Install toolchain
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.10.1
+          version: 0.11.0
 
       - name: Compile epoll
         working-directory: src/epoll/zig
@@ -29,7 +29,7 @@ jobs:
       - name: Install toolchain
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.10.1
+          version: 0.11.0
 
       - name: Compile iouring
         working-directory: src/iouring/zig
