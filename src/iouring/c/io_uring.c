@@ -90,64 +90,42 @@ static int init_io_uring(io_uring *ring, uint32_t entries) {
     return err;
 }
 
-static inline void prepare_accept(io_uring *ring, int32_t sockfd) {
+static void prepare_accept(io_uring *ring, int32_t sockfd) {
     io_uring_sqe *sqe = io_uring_get_sqe(ring);
-    // if (sqe == nullptr) {
-    //     return false;
-    // }
 
     io_uring_prep_multishot_accept(sqe, sockfd, NULL, NULL, 0);
     union event data = {.data = {.fd = -1, .op = OP_ACCEPT}};
     sqe->user_data = data.data_as_u64;
-
-    // return true;
 }
 
-static inline void prepare_recv(io_uring *ring, int32_t connfd, uint8_t *buf) {
+static void prepare_recv(io_uring *ring, int32_t connfd, uint8_t *buf) {
     io_uring_sqe *sqe = io_uring_get_sqe(ring);
-    // if (sqe == nullptr) {
-    //     return false;
-    // }
 
     io_uring_prep_recv(sqe, connfd, buf, MAX_BUFFER, 0);
     union event data = {.data = {.fd = connfd, .op = OP_RECV}};
     sqe->user_data = data.data_as_u64;
-
-    // return true;
 }
 
-static inline void prepare_send(io_uring *ring, int32_t connfd, const char *msg,
-                                uint32_t msglen) {
+static void prepare_send(io_uring *ring, int32_t connfd, const char *msg,
+                         uint32_t msglen) {
     io_uring_sqe *sqe = io_uring_get_sqe(ring);
-    // if (sqe == nullptr) {
-    //     return false;
-    // }
 
     io_uring_prep_send(sqe, connfd, msg, msglen, 0);
     union event data = {.data = {.fd = connfd, .op = OP_SEND}};
     sqe->user_data = data.data_as_u64;
-
-    // return true;
 }
 
-static inline void prepare_close(io_uring *ring, int32_t connfd) {
+static void prepare_close(io_uring *ring, int32_t connfd) {
     io_uring_sqe *sqe = io_uring_get_sqe(ring);
-    // if (sqe == nullptr) {
-    //     return false;
-    // }
 
     io_uring_prep_close(sqe, connfd);
     union event data = {.data = {.fd = connfd, .op = OP_CLOSE}};
     sqe->user_data = data.data_as_u64;
-
-    // return true;
 }
 
 int main(int argc, char **argv) {
     const int response_len = strlen(STANDARD_RESPONSE);
     int err = 0;
-    io_uring_cqe *cqes[ENTRIES];
-    printf("Response length: %d\n", response_len);
 
     int32_t sockfd = listen_on_addr(INADDR_LOOPBACK, 8000);
     if (sockfd < 0) {
@@ -176,6 +154,8 @@ int main(int argc, char **argv) {
     err = io_uring_register_ring_fd(&ring);
     if (err < 0) {
         fprintf(stderr, "Failed to register ring fd: %s\n", strerror(-err));
+        close(ring.ring_fd);
+        goto defer_sock;
     }
 
     uint8_t *buffer_mem = calloc(MAX_CONNECTIONS * MAX_BUFFER, sizeof(uint8_t));
@@ -197,9 +177,12 @@ int main(int argc, char **argv) {
             goto defer;
         }
 
-        int count = io_uring_peek_batch_cqe(&ring, &cqes[0], ENTRIES / 2);
-        for (int i = 0; i < count; i++) {
-            io_uring_cqe *cqe = cqes[i];
+        io_uring_cqe *cqe = NULL;
+        int head;
+        uint32_t seen = 0;
+
+        io_uring_for_each_cqe(&ring, head, cqe) {
+            seen += 1;
             union event event = {.data_as_u64 = cqe->user_data};
 
             if (cqe->res < 0) {
@@ -246,7 +229,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        io_uring_cq_advance(&ring, count);
+        io_uring_cq_advance(&ring, seen);
     }
 
 defer:

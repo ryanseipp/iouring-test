@@ -1,5 +1,5 @@
 **/target/
 **/zig-out/
 **/zig-cache/
-src/iouring/c/server
+src/iouring/c/io_uring
 src/iouring/c/.cache

@@ -4,7 +4,7 @@ LDFLAGS ?=
 override LDFLAGS += -luring
 
 srcs := \
-	server.c
+	io_uring.c
 
 all_targets :=
 
