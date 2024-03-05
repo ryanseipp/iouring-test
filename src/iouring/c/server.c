@@ -24,6 +24,7 @@
 
 typedef struct sockaddr_in sockaddr_in;
 typedef struct io_uring io_uring;
+typedef struct io_uring_params io_uring_params;
 typedef struct io_uring_sqe io_uring_sqe;
 typedef struct io_uring_cqe io_uring_cqe;
 
@@ -36,7 +37,7 @@ union event {
 };
 
 const char STANDARD_RESPONSE[] =
-    "HTTP/1.0 200 OK\r\nContent-type: text/html\r\nContent-length: "
+    "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: "
     "17\r\n\r\nHave a nice day!\n";
 
 int32_t listen_on_addr(uint32_t addr, uint16_t port) {
@@ -74,6 +75,18 @@ int32_t listen_on_addr(uint32_t addr, uint16_t port) {
 
 errdefer:
     close(sockfd);
+    return err;
+}
+
+static int init_io_uring(io_uring *ring, uint32_t entries) {
+    int err = 0;
+    io_uring_params params;
+    memset(&params, 0, sizeof(params));
+    params.cq_entries = entries;
+    params.flags = IORING_SETUP_CQSIZE | IORING_SETUP_SUBMIT_ALL;
+
+    err = io_uring_queue_init_params(entries, ring, &params);
+
     return err;
 }
 
@@ -133,28 +146,42 @@ static inline void prepare_close(io_uring *ring, int32_t connfd) {
 int main(int argc, char **argv) {
     const int response_len = strlen(STANDARD_RESPONSE);
     int err = 0;
+    io_uring_cqe *cqes[ENTRIES];
+    printf("Response length: %d\n", response_len);
 
     int32_t sockfd = listen_on_addr(INADDR_LOOPBACK, 8000);
     if (sockfd < 0) {
         err = sockfd;
-        fprintf(stderr,
-                "Couldn't create socket to listen for incoming connections: %s",
-                strerror(err));
+        fprintf(
+            stderr,
+            "Couldn't create socket to listen for incoming connections: %s\n",
+            strerror(err));
         goto defer_sock;
     }
 
     io_uring ring;
-    err = io_uring_queue_init(ENTRIES, &ring, 0);
-
+    err = init_io_uring(&ring, ENTRIES);
     if (err < 0) {
-        fprintf(stderr, "Couldn't initialize io-uring: %s", strerror(err));
+        fprintf(stderr, "Couldn't initialize io-uring: %s\n", strerror(-err));
         goto defer_sock;
+    }
+
+    err = io_uring_register_files(&ring, &sockfd, 1);
+    if (err < 0) {
+        fprintf(stderr, "Failed to register socket fd to io_uring: %s\n",
+                strerror(-err));
+        goto defer_sock;
+    }
+
+    err = io_uring_register_ring_fd(&ring);
+    if (err < 0) {
+        fprintf(stderr, "Failed to register ring fd: %s\n", strerror(-err));
     }
 
     uint8_t *buffer_mem = calloc(MAX_CONNECTIONS * MAX_BUFFER, sizeof(uint8_t));
     if (buffer_mem == NULL) {
         err = -1;
-        fprintf(stderr, "Couldn't allocate buffers for incoming connections");
+        fprintf(stderr, "Couldn't allocate buffers for incoming connections\n");
         goto defer;
     }
 
@@ -162,25 +189,34 @@ int main(int argc, char **argv) {
     uint32_t buf_idx = 0;
 
     while (true) {
-        io_uring_cqe *cqe;
-        uint32_t head;
+        err = io_uring_submit_and_wait(&ring, 1);
+        if (err == -EINTR) {
+            continue;
+        }
+        if (err < 0) {
+            goto defer;
+        }
 
-        io_uring_for_each_cqe(&ring, head, cqe) {
+        int count = io_uring_peek_batch_cqe(&ring, &cqes[0], ENTRIES / 2);
+        for (int i = 0; i < count; i++) {
+            io_uring_cqe *cqe = cqes[i];
+            union event event = {.data_as_u64 = cqe->user_data};
+
             if (cqe->res < 0) {
                 int cqe_err = -cqe->res;
 
                 if (cqe_err == EPIPE) {
-                    fprintf(stdout, "WARN: EPIPE received");
+                    fprintf(stdout, "WARN: EPIPE received\n");
                 } else if (cqe_err == ECONNRESET) {
-                    fprintf(stdout, "WARN: ECONNRESET received");
+                    fprintf(stdout, "WARN: ECONNRESET received\n");
                 } else {
-                    fprintf(stderr, "ERR(%d): %s for CQE {.user_data = %llu}\n",
-                            cqe_err, strerror(cqe_err), cqe->user_data);
+                    fprintf(stderr,
+                            "ERR(%d): %s for CQE {.op = %u, .fd = %d}\n",
+                            cqe_err, strerror(cqe_err), event.data.op,
+                            event.data.fd);
                     goto defer;
                 }
             }
-
-            union event event = {.data_as_u64 = cqe->user_data};
 
             switch (event.data.op) {
                 case OP_ACCEPT:
@@ -192,11 +228,11 @@ int main(int argc, char **argv) {
                     buf_idx = (buf_idx + 1) % MAX_CONNECTIONS;
                     break;
                 case OP_RECV:
-                    if (cqe->res != 0) {
+                    if (cqe->res == 0) {
+                        prepare_close(&ring, event.data.fd);
+                    } else {
                         prepare_send(&ring, event.data.fd, STANDARD_RESPONSE,
                                      response_len);
-                    } else {
-                        prepare_close(&ring, event.data.fd);
                     }
                     break;
                 case OP_SEND:
@@ -208,14 +244,9 @@ int main(int argc, char **argv) {
                 default:
                     break;
             }
-
-            io_uring_cqe_seen(&ring, cqe);
         }
 
-        err = io_uring_submit_and_wait(&ring, 1);
-        if (err < 0) {
-            goto defer;
-        }
+        io_uring_cq_advance(&ring, count);
     }
 
 defer:
