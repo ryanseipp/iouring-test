@@ -35,7 +35,7 @@ union event {
     uint64_t data_as_u64;
 };
 
-const char *STANDARD_RESPONSE =
+const char STANDARD_RESPONSE[] =
     "HTTP/1.0 200 OK\r\nContent-type: text/html\r\nContent-length: "
     "17\r\n\r\nHave a nice day!\n";
 
@@ -131,6 +131,7 @@ static inline void prepare_close(io_uring *ring, int32_t connfd) {
 }
 
 int main(int argc, char **argv) {
+    const int response_len = strlen(STANDARD_RESPONSE);
     int err = 0;
 
     int32_t sockfd = listen_on_addr(INADDR_LOOPBACK, 8000);
@@ -150,13 +151,12 @@ int main(int argc, char **argv) {
         goto defer_sock;
     }
 
-    uint8_t *buffers = malloc(sizeof(uint8_t) * MAX_CONNECTIONS * MAX_BUFFER);
-    if (buffers == NULL) {
+    uint8_t *buffer_mem = calloc(MAX_CONNECTIONS * MAX_BUFFER, sizeof(uint8_t));
+    if (buffer_mem == NULL) {
         err = -1;
         fprintf(stderr, "Couldn't allocate buffers for incoming connections");
         goto defer;
     }
-    memset(buffers, 0, sizeof(uint8_t[MAX_CONNECTIONS][MAX_BUFFER]));
 
     prepare_accept(&ring, sockfd);
     uint32_t buf_idx = 0;
@@ -187,19 +187,21 @@ int main(int argc, char **argv) {
                     if ((cqe->flags & IORING_CQE_F_MORE) == 0) {
                         prepare_accept(&ring, sockfd);
                     }
-                    prepare_recv(&ring, cqe->res, &buffers[buf_idx]);
+                    prepare_recv(&ring, cqe->res,
+                                 &buffer_mem[buf_idx * MAX_BUFFER]);
                     buf_idx = (buf_idx + 1) % MAX_CONNECTIONS;
                     break;
                 case OP_RECV:
                     if (cqe->res != 0) {
                         prepare_send(&ring, event.data.fd, STANDARD_RESPONSE,
-                                     strlen(STANDARD_RESPONSE));
+                                     response_len);
                     } else {
                         prepare_close(&ring, event.data.fd);
                     }
                     break;
                 case OP_SEND:
-                    prepare_recv(&ring, event.data.fd, &buffers[buf_idx]);
+                    prepare_recv(&ring, event.data.fd,
+                                 &buffer_mem[buf_idx * MAX_BUFFER]);
                     buf_idx = (buf_idx + 1) % MAX_CONNECTIONS;
                     break;
                 case OP_CLOSE:
