@@ -7,6 +7,9 @@ jobs:
     name: Build io_uring
     runs-on: ubuntu-latest
     steps:
+      - name: Install system deps
+        run: apt update && apt install liburing-dev
+
       - name: Checkout sources
         uses: actions/checkout@v3
 
