@@ -1,0 +1,15 @@
+on: [push, pull_request]
+
+name: CI - C
+
+jobs:
+  build_iouring:
+    name: Build io_uring
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Compile iouring
+        working-directory: src/iouring/c
+        run: make
